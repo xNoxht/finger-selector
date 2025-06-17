@@ -1,0 +1,9 @@
+{
+  "name": "Finger Selector",
+  "short_name": "Selector",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#00ff88",
+  "icons": []
+}
