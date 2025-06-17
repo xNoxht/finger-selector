@@ -8,8 +8,7 @@
   <style>
     html, body {
       margin: 0; padding: 0;
-      background: url('background.jpg') no-repeat center center fixed;
-      background-size: cover;
+      background: #0a0a0a;
       height: 100%; width: 100%;
       overflow: hidden;
       font-family: sans-serif;
@@ -31,7 +30,6 @@
       transform: translate(-50%, -50%) scale(0.8);
       box-shadow: 0 0 15px var(--color, #fff);
       animation: popIn 0.2s ease-out forwards;
-      pointer-events: none;
     }
     @keyframes popIn { to { transform: translate(-50%, -50%) scale(1.1); } }
 
@@ -89,6 +87,7 @@
 
     const touches = new Map();
     let timer = null;
+    let idCounter = 0;
 
     function randomColor(id) {
       const colors = ['#e74c3c', '#2ecc71', '#3498db', '#9b59b6', '#f1c40f', '#e67e22', '#1abc9c', '#ff69b4'];
@@ -132,53 +131,65 @@
       showCountdown(() => {
         timer = setTimeout(() => {
           const ids = Array.from(touches.keys());
-          const winnerId = ids[Math.floor(Math.random() * ids.length)];
-          const el = touches.get(winnerId);
-          if (el) {
-            el.classList.add('winner');
-            message.style.display = 'block';
-            challenge.textContent = challenges[Math.floor(Math.random() * challenges.length)];
-            challenge.style.display = 'block';
-          }
-          setTimeout(resetGame, 5000);
+          let highlightIndex = 0;
+          const interval = setInterval(() => {
+            if (highlightIndex > 0) touches.get(ids[highlightIndex - 1]).classList.remove('winner');
+            if (highlightIndex >= ids.length) {
+              clearInterval(interval);
+              const winnerId = ids[Math.floor(Math.random() * ids.length)];
+              const el = touches.get(winnerId);
+              if (el) {
+                el.classList.add('winner');
+                message.style.display = 'block';
+                challenge.textContent = challenges[Math.floor(Math.random() * challenges.length)];
+                challenge.style.display = 'block';
+              }
+              setTimeout(resetGame, 5000);
+              return;
+            }
+            touches.get(ids[highlightIndex])?.classList.add('winner');
+            highlightIndex++;
+          }, 300);
         }, 500);
       });
     }
 
+    function handleInput(x, y) {
+      if (touches.size >= 8) return;
+      const el = document.createElement('div');
+      el.className = 'touch';
+      el.style.setProperty('--color', randomColor(idCounter));
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      game.appendChild(el);
+      const fakeId = id-${idCounter++};
+      touches.set(fakeId, el);
+      startSelection();
+
+      function remove() {
+        document.removeEventListener('mouseup', remove);
+        document.removeEventListener('touchend', remove);
+        el.remove();
+        touches.delete(fakeId);
+        if (touches.size < 2 && timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+      }
+      document.addEventListener('mouseup', remove);
+      document.addEventListener('touchend', remove);
+    }
+
+    game.addEventListener('mousedown', e => {
+      handleInput(e.clientX, e.clientY);
+    });
+
     game.addEventListener('touchstart', e => {
       for (const t of e.changedTouches) {
-        const el = document.createElement('div');
-        el.className = 'touch';
-        el.style.setProperty('--color', randomColor(t.identifier));
-        game.appendChild(el);
-        touches.set(t.identifier, el);
+        handleInput(t.clientX, t.clientY);
       }
-      startSelection();
-    }, { passive: false });
-
-    game.addEventListener('touchmove', e => {
-      for (const t of e.changedTouches) {
-        const el = touches.get(t.identifier);
-        if (el) {
-          el.style.left = t.clientX + 'px';
-          el.style.top = t.clientY + 'px';
-        }
-      }
-    }, { passive: false });
-
-    game.addEventListener('touchend', e => {
-      for (const t of e.changedTouches) {
-        const el = touches.get(t.identifier);
-        if (el) {
-          el.remove();
-          touches.delete(t.identifier);
-        }
-      }
-      if (touches.size < 2 && timer) {
-        clearTimeout(timer);
-        timer = null;
-      }
-    }, { passive: false });
+    }, { passive: false }); 
+<!-- Dies ist ein einfacher Kommentar -->
   </script>
 </body>
 </html>
