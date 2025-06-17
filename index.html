@@ -50,16 +50,20 @@
 
     #message, #countdown, #notification, #challenge {
       position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 2em;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.5em;
       text-align: center;
       z-index: 20;
+      padding: 0.5em 1em;
+      background: rgba(0,0,0,0.6);
+      border-radius: 10px;
+      max-width: 90%;
     }
-    #message { color: #00ff88; display: none; text-shadow: 0 0 15px #00ff88; }
-    #countdown { color: #fff; display: none; }
-    #notification { color: #ff5050; display: none; }
-    #challenge { color: #ffd700; display: none; font-size: 1.5em; }
+    #message { color: #00ff88; display: none; top: 35%; text-shadow: 0 0 15px #00ff88; }
+    #countdown { color: #fff; display: none; top: 50%; }
+    #notification { color: #ff5050; display: none; top: 65%; }
+    #challenge { color: #ffd700; display: none; top: 75%; font-size: 1.3em; }
   </style>
 </head>
 <body>
@@ -150,20 +154,21 @@
       });
     }
 
-    game.addEventListener('mousedown', e => {
+    function handleInput(x, y) {
       if (touches.size >= 8) return;
       const el = document.createElement('div');
       el.className = 'touch';
       el.style.setProperty('--color', randomColor(idCounter));
-      el.style.left = e.clientX + 'px';
-      el.style.top = e.clientY + 'px';
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
       game.appendChild(el);
-      const fakeId = `mouse-${idCounter++}`;
+      const fakeId = `id-${idCounter++}`;
       touches.set(fakeId, el);
       startSelection();
 
-      function up() {
-        document.removeEventListener('mouseup', up);
+      function remove() {
+        document.removeEventListener('mouseup', remove);
+        document.removeEventListener('touchend', remove);
         el.remove();
         touches.delete(fakeId);
         if (touches.size < 2 && timer) {
@@ -171,8 +176,19 @@
           timer = null;
         }
       }
-      document.addEventListener('mouseup', up);
+      document.addEventListener('mouseup', remove);
+      document.addEventListener('touchend', remove);
+    }
+
+    game.addEventListener('mousedown', e => {
+      handleInput(e.clientX, e.clientY);
     });
+
+    game.addEventListener('touchstart', e => {
+      for (const t of e.changedTouches) {
+        handleInput(t.clientX, t.clientY);
+      }
+    }, { passive: false });
   </script>
 </body>
 </html>
