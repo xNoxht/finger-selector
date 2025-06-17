@@ -1,2 +1,216 @@
 <!DOCTYPE html>
-<!-- HTML content inserted here -->
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Finger Selector</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      background: #0a0a0a;
+      height: 100%; width: 100%;
+      overflow: hidden;
+      font-family: sans-serif;
+      user-select: none;
+      color: #fff;
+    }
+    #game { position: relative; width: 100%; height: 100vh; overflow: hidden; }
+    .touch {
+      position: absolute;
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      background: var(--color, #fff);
+      transform: translate(-50%, -50%) scale(0.8);
+      box-shadow: 0 0 15px var(--color, #fff);
+      animation: popIn 0.2s ease-out forwards;
+    }
+    @keyframes popIn { to { transform: translate(-50%, -50%) scale(1.1); } }
+
+    .winner {
+      animation: winnerPulse 1s infinite ease-in-out, rotateWinner 2s linear infinite;
+      box-shadow: 0 0 30px 10px #00ff99;
+      border: 3px solid #00ff99;
+      z-index: 10;
+    }
+    @keyframes winnerPulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1.1); }
+      50% { transform: translate(-50%, -50%) scale(1.6); }
+    }
+    @keyframes rotateWinner {
+      0% { transform: translate(-50%, -50%) scale(1.1) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) scale(1.1) rotate(360deg); }
+    }
+
+    #message, #countdown, #notification, #challenge {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2em;
+      text-align: center;
+      z-index: 20;
+    }
+    #message { color: #00ff88; display: none; text-shadow: 0 0 15px #00ff88; }
+    #countdown { color: #fff; display: none; }
+    #notification { color: #ff5050; display: none; }
+    #challenge { color: #ffd700; display: none; font-size: 1.5em; }
+    #startOverlay {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #startOverlay input {
+      margin: 5px; padding: 10px; font-size: 1em;
+    }
+    #startOverlay button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 1em;
+    }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+  <div id="countdown"></div>
+  <div id="message">🎉 Gewinner!</div>
+  <div id="notification">Mindestens 2 Spieler erforderlich!</div>
+  <div id="challenge"></div>
+
+  <div id="startOverlay">
+    <h2>Gib Namen der Spieler ein</h2>
+    <div id="inputs"></div>
+    <button onclick="startGame()">Starten</button>
+  </div>
+
+  <script>
+    const game = document.getElementById('game');
+    const message = document.getElementById('message');
+    const countdown = document.getElementById('countdown');
+    const notification = document.getElementById('notification');
+    const challenge = document.getElementById('challenge');
+    const startOverlay = document.getElementById('startOverlay');
+    const inputsContainer = document.getElementById('inputs');
+
+    const challenges = [
+      "Mach 5 Liegestütze!", "Erzähle einen Witz!", "Tanze für 10 Sekunden!",
+      "Mach ein Tiergeräusch!", "Erfinde einen Reim!", "Singe eine Zeile!"
+    ];
+
+    const playerCount = 4;
+    const playerNames = [];
+    const touches = new Map();
+    let timer = null;
+    let idCounter = 0;
+
+    for (let i = 0; i < playerCount; i++) {
+      const input = document.createElement('input');
+      input.placeholder = `Spieler ${i + 1}`;
+      input.id = `p${i}`;
+      inputsContainer.appendChild(input);
+    }
+
+    function startGame() {
+      for (let i = 0; i < playerCount; i++) {
+        const name = document.getElementById(`p${i}`).value.trim();
+        if (name) playerNames.push(name);
+      }
+      if (playerNames.length < 2) {
+        alert("Mindestens 2 Spieler eingeben!"); return;
+      }
+      startOverlay.style.display = 'none';
+    }
+
+    function randomColor(id) {
+      const colors = ['#e74c3c', '#2ecc71', '#3498db', '#9b59b6', '#f1c40f', '#e67e22', '#1abc9c', '#ff69b4'];
+      return colors[id % colors.length];
+    }
+
+    function resetGame() {
+      timer = null;
+      countdown.style.display = 'none';
+      message.style.display = 'none';
+      notification.style.display = 'none';
+      challenge.style.display = 'none';
+      touches.forEach(el => el.remove());
+      touches.clear();
+    }
+
+    function showCountdown(cb) {
+      let count = 3;
+      countdown.textContent = count;
+      countdown.style.display = 'block';
+      const interval = setInterval(() => {
+        count--;
+        if (count > 0) {
+          countdown.textContent = count;
+        } else {
+          clearInterval(interval);
+          countdown.style.display = 'none';
+          cb();
+        }
+      }, 1000);
+    }
+
+    function startSelection() {
+      if (timer || touches.size < 2) {
+        if (touches.size < 2) {
+          notification.style.display = 'block';
+          setTimeout(() => notification.style.display = 'none', 2000);
+        }
+        return;
+      }
+      showCountdown(() => {
+        timer = setTimeout(() => {
+          const ids = Array.from(touches.keys());
+          let highlightIndex = 0;
+          const interval = setInterval(() => {
+            if (highlightIndex > 0) touches.get(ids[highlightIndex - 1]).classList.remove('winner');
+            if (highlightIndex >= ids.length) {
+              clearInterval(interval);
+              const winnerId = ids[Math.floor(Math.random() * ids.length)];
+              const el = touches.get(winnerId);
+              if (el) {
+                el.classList.add('winner');
+                message.style.display = 'block';
+                challenge.textContent = challenges[Math.floor(Math.random() * challenges.length)];
+                challenge.style.display = 'block';
+              }
+              setTimeout(resetGame, 5000);
+              return;
+            }
+            touches.get(ids[highlightIndex])?.classList.add('winner');
+            highlightIndex++;
+          }, 300);
+        }, 500);
+      });
+    }
+
+    game.addEventListener('mousedown', e => {
+      const el = document.createElement('div');
+      el.className = 'touch';
+      el.style.setProperty('--color', randomColor(idCounter));
+      el.style.left = e.clientX + 'px';
+      el.style.top = e.clientY + 'px';
+      game.appendChild(el);
+      const fakeId = `mouse-${idCounter++}`;
+      touches.set(fakeId, el);
+      startSelection();
+
+      function up() {
+        document.removeEventListener('mouseup', up);
+        el.remove();
+        touches.delete(fakeId);
+        if (touches.size < 2 && timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+      }
+      document.addEventListener('mouseup', up);
+    });
+  </script>
+</body>
+</html>
