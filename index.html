@@ -54,23 +54,6 @@
     #countdown { color: #fff; display: none; }
     #notification { color: #ff5050; display: none; }
     #challenge { color: #ffd700; display: none; font-size: 1.5em; }
-    #startOverlay {
-      position: absolute; inset: 0;
-      background: rgba(0,0,0,0.85);
-      z-index: 30;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-    #startOverlay input {
-      margin: 5px; padding: 10px; font-size: 1em;
-    }
-    #startOverlay button {
-      margin-top: 15px;
-      padding: 10px 20px;
-      font-size: 1em;
-    }
   </style>
 </head>
 <body>
@@ -80,49 +63,21 @@
   <div id="notification">Mindestens 2 Spieler erforderlich!</div>
   <div id="challenge"></div>
 
-  <div id="startOverlay">
-    <h2>Gib Namen der Spieler ein</h2>
-    <div id="inputs"></div>
-    <button onclick="startGame()">Starten</button>
-  </div>
-
   <script>
     const game = document.getElementById('game');
     const message = document.getElementById('message');
     const countdown = document.getElementById('countdown');
     const notification = document.getElementById('notification');
     const challenge = document.getElementById('challenge');
-    const startOverlay = document.getElementById('startOverlay');
-    const inputsContainer = document.getElementById('inputs');
 
     const challenges = [
       "Mach 5 Liegestütze!", "Erzähle einen Witz!", "Tanze für 10 Sekunden!",
       "Mach ein Tiergeräusch!", "Erfinde einen Reim!", "Singe eine Zeile!"
     ];
 
-    const playerCount = 4;
-    const playerNames = [];
     const touches = new Map();
     let timer = null;
     let idCounter = 0;
-
-    for (let i = 0; i < playerCount; i++) {
-      const input = document.createElement('input');
-      input.placeholder = `Spieler ${i + 1}`;
-      input.id = `p${i}`;
-      inputsContainer.appendChild(input);
-    }
-
-    function startGame() {
-      for (let i = 0; i < playerCount; i++) {
-        const name = document.getElementById(`p${i}`).value.trim();
-        if (name) playerNames.push(name);
-      }
-      if (playerNames.length < 2) {
-        alert("Mindestens 2 Spieler eingeben!"); return;
-      }
-      startOverlay.style.display = 'none';
-    }
 
     function randomColor(id) {
       const colors = ['#e74c3c', '#2ecc71', '#3498db', '#9b59b6', '#f1c40f', '#e67e22', '#1abc9c', '#ff69b4'];
@@ -190,6 +145,7 @@
     }
 
     game.addEventListener('mousedown', e => {
+      if (touches.size >= 8) return;
       const el = document.createElement('div');
       el.className = 'touch';
       el.style.setProperty('--color', randomColor(idCounter));
