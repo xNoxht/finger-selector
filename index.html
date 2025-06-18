@@ -162,7 +162,7 @@
       el.style.left = x + 'px';
       el.style.top = y + 'px';
       game.appendChild(el);
-      const fakeId = id-${idCounter++};
+      const fakeId = `id-${idCounter++}`;
       touches.set(fakeId, el);
       startSelection();
 
@@ -188,8 +188,7 @@
       for (const t of e.changedTouches) {
         handleInput(t.clientX, t.clientY);
       }
-    }, { passive: false }); 
-<!-- Dies ist ein einfacher Kommentar -->
+    }, { passive: false });
   </script>
 </body>
 </html>
